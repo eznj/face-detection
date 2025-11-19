@@ -1,172 +1,555 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- Adapted to work with the getUserMedia API using code from http://wesbos.com/html5-video-face-detection-canvas-javascript/ -->
-	<head>
-		<meta charset="utf-8">
-		<title>HTML5 Face Detection - JavaScript getUserMedia API and Groucho Marx glasses!</title>
-		<style>
-body {
-	font-family: sans-serif;
-	font-size: 17px;
-	line-height: 24px;
-	color: #fff;
-	width: 100%;
-	height: 100%;
-	margin: 0;
-	text-align: center;
-	background-color: #111;
-}
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>face detection</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;700&display=swap');
 
-#info {
-	position: absolute;
-	width: 100%;
-	height: 30px;
-	top: 50%;
-	margin-top: -15px;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-#output {
-	width: auto;
-	height: 100%;
-	background: black;
-	-webkit-transform: scale(-1, 1);
-}
-		</style>
-	</head>
-	<body>
-		<p id="info">Please allow access to your camera!</p>
-		<canvas id="output"></canvas>
-		<script src="ccv.js"></script>
-		<script src="face.js"></script>
-		<script>
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-magenta: #ff00ff;
+            --neon-green: #00ff41;
+            --deep-black: #0a0a0a;
+            --dark-gray: #1a1a1a;
+            --glitch-1: #ff0080;
+            --glitch-2: #00ffff;
+        }
 
-// requestAnimationFrame shim
-(function() {
-	var i = 0,
-		lastTime = 0,
-		vendors = ['ms', 'moz', 'webkit', 'o'];
-	
-	while (i < vendors.length && !window.requestAnimationFrame) {
-		window.requestAnimationFrame = window[vendors[i] + 'RequestAnimationFrame'];
-		i++;
-	}
-	
-	if (!window.requestAnimationFrame) {
-		window.requestAnimationFrame = function(callback, element) {
-			var currTime = new Date().getTime(),
-				timeToCall = Math.max(0, 1000 / 60 - currTime + lastTime),
-				id = setTimeout(function() { callback(currTime + timeToCall); }, timeToCall);
-			
-			lastTime = currTime + timeToCall;
-			return id;
-		};
-	}
-}());
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--deep-black);
+            color: var(--neon-cyan);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
 
-var App = {
-	start: function(stream) {
-		App.video.addEventListener('canplay', function() {
-			App.video.removeEventListener('canplay');
-			setTimeout(function() {
-				App.video.play();
-				App.canvas.style.display = 'inline';
-				App.info.style.display = 'none';
-				App.canvas.width = App.video.videoWidth;
-				App.canvas.height = App.video.videoHeight;
-				App.backCanvas.width = App.video.videoWidth / 4;
-				App.backCanvas.height = App.video.videoHeight / 4;
-				App.backContext = App.backCanvas.getContext('2d');
-			
-				var w = 300 / 4 * 0.8,
-					h = 270 / 4 * 0.8;
-			
-				App.comp = [{
-					x: (App.video.videoWidth / 4 - w) / 2,
-					y: (App.video.videoHeight / 4 - h) / 2,
-					width: w, 
-					height: h,
-				}];
-			
-				App.drawToCanvas();
-			}, 500);
-		}, true);
-		
-		var domURL = window.URL || window.webkitURL;
-		App.video.src = domURL ? domURL.createObjectURL(stream) : stream;
-	},
-	denied: function() {
-		App.info.innerHTML = 'Camera access denied!<br>Please reload and try again.';
-	},
-	error: function(e) {
-		if (e) {
-			console.error(e);
-		}
-		App.info.innerHTML = 'Please go to about:flags in Google Chrome and enable the &quot;MediaStream&quot; flag.';
-	},
-	drawToCanvas: function() {
-		requestAnimationFrame(App.drawToCanvas);
-		
-		var video = App.video,
-			ctx = App.context,
-			backCtx = App.backContext,
-			m = 4,
-			w = 4,
-			i,
-			comp;
-		
-		ctx.drawImage(video, 0, 0, App.canvas.width, App.canvas.height);
-		
-		backCtx.drawImage(video, 0, 0, App.backCanvas.width, App.backCanvas.height);
-		
-		comp = ccv.detect_objects(App.ccv = App.ccv || {
-			canvas: App.backCanvas,
-			cascade: cascade,
-			interval: 4,
-			min_neighbors: 1
-		});
-		
-		if (comp.length) {
-			App.comp = comp;
-		}
-		
-		for (i = App.comp.length; i--; ) {
-			ctx.drawImage(App.glasses, (App.comp[i].x - w / 2) * m, (App.comp[i].y - w / 2) * m, (App.comp[i].width + w) * m, (App.comp[i].height + w) * m);
-		}
-	}
-};
+        /* Scanline effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanline 8s linear infinite;
+        }
 
-App.glasses = new Image();
-App.glasses.src = 'glasses.png';
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(10px); }
+        }
 
-App.init = function() {
-	App.video = document.createElement('video');
-	App.backCanvas = document.createElement('canvas');
-	App.canvas = document.querySelector('#output');
-	App.canvas.style.display = 'none';
-	App.context = App.canvas.getContext('2d');
-	App.info = document.querySelector('#info');
-	
-	navigator.getUserMedia_ = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
-	
-	try {
-		navigator.getUserMedia_({
-			video: true,
-			audio: false
-		}, App.start, App.denied);
-	} catch (e) {
-		try {
-			navigator.getUserMedia_('video', App.start, App.denied);
-		} catch (e) {
-			App.error(e);
-		}
-	}
-	
-	App.video.loop = App.video.muted = true;
-	App.video.load();
-};
+        /* CRT screen effect */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 100%);
+            pointer-events: none;
+            z-index: 999;
+        }
 
-App.init();
+        #container {
+            position: relative;
+            max-width: 95vw;
+            max-height: 95vh;
+            filter: contrast(1.1) brightness(1.05);
+        }
 
-		</script>
-	</body>
+        #output {
+            display: none;
+            max-width: 100%;
+            max-height: 95vh;
+            border: 2px solid var(--neon-cyan);
+            box-shadow:
+                0 0 20px rgba(0, 255, 255, 0.5),
+                0 0 40px rgba(0, 255, 255, 0.3),
+                inset 0 0 60px rgba(0, 255, 255, 0.1);
+            transform: scaleX(-1);
+            position: relative;
+            z-index: 1;
+        }
+
+        #info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            animation: glitch 3s infinite;
+            z-index: 10;
+        }
+
+        #info .jp {
+            display: block;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            color: var(--neon-magenta);
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(-50%, -50%); }
+            92% { transform: translate(-48%, -50%); }
+            94% { transform: translate(-52%, -51%); }
+            96% { transform: translate(-50%, -49%); }
+        }
+
+        /* UI Overlay */
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: var(--neon-cyan);
+            opacity: 0.6;
+        }
+
+        .corner.tl { top: 20px; left: 20px; border-top: 2px solid; border-left: 2px solid; }
+        .corner.tr { top: 20px; right: 20px; border-top: 2px solid; border-right: 2px solid; }
+        .corner.bl { bottom: 20px; left: 20px; border-bottom: 2px solid; border-left: 2px solid; }
+        .corner.br { bottom: 20px; right: 20px; border-bottom: 2px solid; border-right: 2px solid; }
+
+        #status {
+            position: absolute;
+            top: 20px;
+            left: 80px;
+            font-size: 0.75rem;
+            color: var(--neon-green);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            opacity: 0.8;
+        }
+
+        #stats {
+            position: absolute;
+            bottom: 20px;
+            right: 80px;
+            font-size: 0.7rem;
+            text-align: right;
+            opacity: 0.6;
+            line-height: 1.6;
+        }
+
+        .stat-label {
+            color: var(--neon-magenta);
+        }
+
+        /* Controls */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            pointer-events: all;
+            z-index: 101;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 8px 16px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.7rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background: var(--neon-cyan);
+            color: var(--deep-black);
+            box-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        button.active {
+            background: var(--neon-magenta);
+            border-color: var(--neon-magenta);
+            color: var(--deep-black);
+            box-shadow: 0 0 15px var(--neon-magenta);
+        }
+
+        /* Face detection overlay styles */
+        .face-box {
+            position: absolute;
+            border: 2px solid var(--neon-magenta);
+            box-shadow: 0 0 10px var(--neon-magenta);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        /* Glitch effect */
+        @keyframes chromatic {
+            0% { filter: none; }
+            25% { filter: hue-rotate(0deg); }
+            50% { filter: hue-rotate(90deg); }
+            75% { filter: hue-rotate(180deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        .glitch-mode #output {
+            animation: chromatic 10s linear infinite;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <p id="info">
+            allow camera access
+            <span class="loading">...</span>
+        </p>
+        <canvas id="output"></canvas>
+    </div>
+
+    <div id="ui-overlay">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+
+        <div id="status">active</div>
+
+        <div id="stats">
+            <div><span class="stat-label">faces:</span> <span id="face-count">0</span></div>
+            <div><span class="stat-label">fps:</span> <span id="fps">0</span></div>
+        </div>
+
+        <div id="controls" style="display: none;">
+            <button id="toggle-glasses">glasses</button>
+            <button id="toggle-mesh">mesh</button>
+            <button id="toggle-glitch">glitch</button>
+            <button id="toggle-invert">invert</button>
+        </div>
+    </div>
+
+    <script src="ccv.js"></script>
+    <script src="face.js"></script>
+    <script>
+        // Modern face detection application
+        class CyberFaceDetector {
+            constructor() {
+                this.video = null;
+                this.canvas = null;
+                this.ctx = null;
+                this.backCanvas = null;
+                this.backCtx = null;
+                this.stream = null;
+                this.glasses = new Image();
+                this.glasses.src = 'glasses.png';
+                this.detectedFaces = [];
+                this.lastFrameTime = Date.now();
+                this.fps = 0;
+
+                // Effect toggles
+                this.effects = {
+                    glasses: true,
+                    mesh: false,
+                    glitch: false,
+                    invert: false
+                };
+
+                this.init();
+            }
+
+            async init() {
+                this.setupElements();
+                this.setupControls();
+                await this.startCamera();
+            }
+
+            setupElements() {
+                this.canvas = document.getElementById('output');
+                this.ctx = this.canvas.getContext('2d');
+                this.video = document.createElement('video');
+                this.video.setAttribute('playsinline', '');
+                this.backCanvas = document.createElement('canvas');
+                this.backCtx = this.backCanvas.getContext('2d');
+            }
+
+            setupControls() {
+                document.getElementById('toggle-glasses').addEventListener('click', () => {
+                    this.effects.glasses = !this.effects.glasses;
+                    document.getElementById('toggle-glasses').classList.toggle('active', this.effects.glasses);
+                });
+
+                document.getElementById('toggle-mesh').addEventListener('click', () => {
+                    this.effects.mesh = !this.effects.mesh;
+                    document.getElementById('toggle-mesh').classList.toggle('active', this.effects.mesh);
+                });
+
+                document.getElementById('toggle-glitch').addEventListener('click', () => {
+                    this.effects.glitch = !this.effects.glitch;
+                    document.body.classList.toggle('glitch-mode', this.effects.glitch);
+                    document.getElementById('toggle-glitch').classList.toggle('active', this.effects.glitch);
+                });
+
+                document.getElementById('toggle-invert').addEventListener('click', () => {
+                    this.effects.invert = !this.effects.invert;
+                    document.getElementById('toggle-invert').classList.toggle('active', this.effects.invert);
+                });
+            }
+
+            async startCamera() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            facingMode: 'user'
+                        },
+                        audio: false
+                    });
+
+                    this.video.srcObject = this.stream;
+                    this.video.play();
+
+                    this.video.addEventListener('loadedmetadata', () => {
+                        this.onCameraReady();
+                    });
+
+                } catch (error) {
+                    this.handleError(error);
+                }
+            }
+
+            onCameraReady() {
+                const info = document.getElementById('info');
+                const controls = document.getElementById('controls');
+
+                this.canvas.style.display = 'inline';
+                this.canvas.width = this.video.videoWidth;
+                this.canvas.height = this.video.videoHeight;
+                this.backCanvas.width = this.video.videoWidth / 4;
+                this.backCanvas.height = this.video.videoHeight / 4;
+
+                info.style.display = 'none';
+                controls.style.display = 'flex';
+
+                // Initialize face detection area
+                const w = 300 / 4 * 0.8;
+                const h = 270 / 4 * 0.8;
+                this.detectedFaces = [{
+                    x: (this.video.videoWidth / 4 - w) / 2,
+                    y: (this.video.videoHeight / 4 - h) / 2,
+                    width: w,
+                    height: h,
+                }];
+
+                this.render();
+            }
+
+            detectFaces() {
+                this.backCtx.drawImage(this.video, 0, 0, this.backCanvas.width, this.backCanvas.height);
+
+                const faces = ccv.detect_objects({
+                    canvas: this.backCanvas,
+                    cascade: cascade,
+                    interval: 4,
+                    min_neighbors: 1
+                });
+
+                if (faces.length > 0) {
+                    this.detectedFaces = faces;
+                }
+
+                document.getElementById('face-count').textContent = faces.length;
+            }
+
+            render() {
+                requestAnimationFrame(() => this.render());
+
+                // Calculate FPS
+                const now = Date.now();
+                const delta = now - this.lastFrameTime;
+                this.fps = Math.round(1000 / delta);
+                this.lastFrameTime = now;
+                document.getElementById('fps').textContent = this.fps;
+
+                // Draw video
+                this.ctx.save();
+
+                if (this.effects.invert) {
+                    this.ctx.filter = 'invert(1)';
+                }
+
+                this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+
+                // Detect faces
+                this.detectFaces();
+
+                // Apply effects
+                const scale = 4;
+
+                for (let face of this.detectedFaces) {
+                    const x = face.x * scale;
+                    const y = face.y * scale;
+                    const w = face.width * scale;
+                    const h = face.height * scale;
+
+                    if (this.effects.mesh) {
+                        this.drawMesh(x, y, w, h);
+                    }
+
+                    if (this.effects.glasses) {
+                        const offset = 4;
+                        this.ctx.drawImage(
+                            this.glasses,
+                            (face.x - offset / 2) * scale,
+                            (face.y - offset / 2) * scale,
+                            (face.width + offset) * scale,
+                            (face.height + offset) * scale
+                        );
+                    }
+                }
+
+                if (this.effects.glitch && Math.random() > 0.95) {
+                    this.applyGlitch();
+                }
+
+                this.ctx.restore();
+            }
+
+            drawMesh(x, y, w, h) {
+                this.ctx.strokeStyle = '#ff00ff';
+                this.ctx.lineWidth = 2;
+
+                // Outer box
+                this.ctx.strokeRect(x, y, w, h);
+
+                // Grid
+                this.ctx.beginPath();
+                const gridSize = 5;
+                for (let i = 1; i < gridSize; i++) {
+                    // Vertical lines
+                    this.ctx.moveTo(x + (w / gridSize) * i, y);
+                    this.ctx.lineTo(x + (w / gridSize) * i, y + h);
+                    // Horizontal lines
+                    this.ctx.moveTo(x, y + (h / gridSize) * i);
+                    this.ctx.lineTo(x + w, y + (h / gridSize) * i);
+                }
+                this.ctx.stroke();
+
+                // Corner markers
+                const markerSize = 10;
+                this.ctx.strokeStyle = '#00ffff';
+                this.ctx.lineWidth = 3;
+
+                // Top-left
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y + markerSize);
+                this.ctx.lineTo(x, y);
+                this.ctx.lineTo(x + markerSize, y);
+                this.ctx.stroke();
+
+                // Top-right
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + w - markerSize, y);
+                this.ctx.lineTo(x + w, y);
+                this.ctx.lineTo(x + w, y + markerSize);
+                this.ctx.stroke();
+
+                // Bottom-left
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y + h - markerSize);
+                this.ctx.lineTo(x, y + h);
+                this.ctx.lineTo(x + markerSize, y + h);
+                this.ctx.stroke();
+
+                // Bottom-right
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + w - markerSize, y + h);
+                this.ctx.lineTo(x + w, y + h);
+                this.ctx.lineTo(x + w, y + h - markerSize);
+                this.ctx.stroke();
+
+            }
+
+            applyGlitch() {
+                const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                const data = imageData.data;
+
+                // Chromatic aberration
+                const shift = Math.floor(Math.random() * 10) - 5;
+                for (let i = 0; i < data.length; i += 4) {
+                    const shiftedIndex = Math.min(Math.max(i + shift * 4, 0), data.length - 4);
+                    data[i] = data[shiftedIndex]; // Red channel shift
+                }
+
+                this.ctx.putImageData(imageData, 0, 0);
+            }
+
+            handleError(error) {
+                console.error('Camera error:', error);
+                const info = document.getElementById('info');
+                info.innerHTML = 'camera access denied';
+                info.style.color = '#ff0080';
+            }
+        }
+
+        // Initialize when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                new CyberFaceDetector();
+            });
+        } else {
+            new CyberFaceDetector();
+        }
+    </script>
+</body>
 </html>

@@ -1,7 +1,53 @@
-# Face Detection in JavaScript with getUserMedia
+# face detection
 
-Adapted to work with the getUserMedia API using code from [github.com/wesbos/HTML5-Face-Detection](https://github.com/wesbos/HTML5-Face-Detection)
+real-time face detection experiment using WebRTC and canvas. cyberpunk aesthetic with japanese influences.
 
-[Try out the demo](http://neave.github.com/face-detection/) using Google Chrome with the "MediaStream" flag enabled in about:flags
+adapted from [wesbos/HTML5-Face-Detection](https://github.com/wesbos/HTML5-Face-Detection)
 
-Note that this demo only works online (or localhost) due to security restrictions. It won't work on a local file:/// system!
+## features
+
+- real-time face detection via webcam
+- visual effects: mesh overlay, glitch mode, color inversion
+- neon cyberpunk UI with CRT effects
+- fps counter and face tracking
+
+## setup
+
+clone and serve locally:
+
+```bash
+git clone https://github.com/eznj/face-detection.git
+cd face-detection
+```
+
+## run
+
+the app needs to run on localhost or https for camera access:
+
+```bash
+# using python
+python -m http.server 8000
+
+# or using node
+npx serve
+```
+
+then open `http://localhost:8000` in your browser.
+
+## controls
+
+- **GLASSES** - toggle groucho marx overlay
+- **MESH** - enable detection grid
+- **GLITCH** - chromatic aberration effect
+- **INVERT** - invert colors
+
+## tech
+
+- modern getUserMedia API
+- ES6+ javascript
+- CCV.js for face detection
+- canvas 2D API
+
+## notes
+
+requires modern browser with webcam support. works best in chrome/firefox/edge.
