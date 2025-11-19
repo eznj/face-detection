@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>電脳顔検出 // CYBERFACE.DETECTION</title>
+    <title>face detection</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;700&display=swap');
 
@@ -251,8 +251,7 @@
 <body>
     <div id="container">
         <p id="info">
-            INITIALIZING NEURAL INTERFACE
-            <span class="jp">カメラを許可してください</span>
+            allow camera access
             <span class="loading">...</span>
         </p>
         <canvas id="output"></canvas>
@@ -264,19 +263,18 @@
         <div class="corner bl"></div>
         <div class="corner br"></div>
 
-        <div id="status">SYSTEM ACTIVE // システム起動</div>
+        <div id="status">active</div>
 
         <div id="stats">
-            <div><span class="stat-label">FACES:</span> <span id="face-count">0</span></div>
-            <div><span class="stat-label">FPS:</span> <span id="fps">0</span></div>
-            <div><span class="stat-label">MODE:</span> <span id="mode">DETECT</span></div>
+            <div><span class="stat-label">faces:</span> <span id="face-count">0</span></div>
+            <div><span class="stat-label">fps:</span> <span id="fps">0</span></div>
         </div>
 
         <div id="controls" style="display: none;">
-            <button id="toggle-glasses">GLASSES</button>
-            <button id="toggle-mesh">MESH</button>
-            <button id="toggle-glitch">GLITCH</button>
-            <button id="toggle-invert">INVERT</button>
+            <button id="toggle-glasses">glasses</button>
+            <button id="toggle-mesh">mesh</button>
+            <button id="toggle-glitch">glitch</button>
+            <button id="toggle-invert">invert</button>
         </div>
     </div>
 
@@ -520,10 +518,6 @@
                 this.ctx.lineTo(x + w, y + h - markerSize);
                 this.ctx.stroke();
 
-                // Add Japanese text
-                this.ctx.fillStyle = '#00ff41';
-                this.ctx.font = '12px "IBM Plex Mono"';
-                this.ctx.fillText('顔検出', x, y - 5);
             }
 
             applyGlitch() {
@@ -543,10 +537,7 @@
             handleError(error) {
                 console.error('Camera error:', error);
                 const info = document.getElementById('info');
-                info.innerHTML = `
-                    ERROR: CAMERA ACCESS DENIED
-                    <span class="jp">エラー：カメラが使えません</span>
-                `;
+                info.innerHTML = 'camera access denied';
                 info.style.color = '#ff0080';
             }
         }
