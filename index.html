@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="0; url=face.html">
+    <title>電脳顔検出 // Redirecting...</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            color: #00ffff;
+            font-family: 'IBM Plex Mono', monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        .loader {
+            font-size: 1.5rem;
+            letter-spacing: 0.3em;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .jp {
+            display: block;
+            margin-top: 20px;
+            font-size: 1rem;
+            color: #ff00ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="loader">
+        INITIALIZING...
+        <span class="jp">起動中...</span>
+    </div>
+    <script>
+        // Fallback redirect if meta refresh doesn't work
+        setTimeout(() => {
+            window.location.href = 'face.html';
+        }, 100);
+    </script>
+</body>
+</html>
